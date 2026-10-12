@@ -89,7 +89,7 @@ Discretization bias at Δt = 1 h: mean outage 1.79 h → 2.34 h (unplanned), 8.6
 ## feeder_study.py
 
 ### Purpose
-Turn "grid availability" into a computed quantity. Your notes distinguish three grid quantities for a depot: (1) connection state, (2) rated capacity, (3) deliverable capacity under stress. This script computes (1) via network topology and (3) via power flow, on a standard test feeder with candidate depots attached as loads.
+Turn "grid availability" into a computed quantity. This script computes connection state via network topology and deliverable capacity under stress via power flow, on a standard test feeder with candidate depots attached as loads.
 
 ### The test feeder
 `pandapower.networks.case33bw()` — the Baran & Wu (1989) 33-bus distribution feeder:
