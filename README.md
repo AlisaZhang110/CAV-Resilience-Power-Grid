@@ -1,9 +1,10 @@
-# Project #4 - Grid Layer Starter Code
+# Project #4 — Grid Layer Starter Code
 
 | File | What it answers | Kind of analysis |
 |---|---|---|
 | `markov_outages.py` | *When* does a depot's power supply fail, and for how long? | Converts SCE reliability indices into failure/repair probabilities; validates with a random simulation |
 | `feeder_study.py` | *What does a failure mean* for each depot's charging power? | Deterministic AC power flow on a test distribution feeder: hosting capacity + single-outage (N-1) checks |
+| `outage_sim.py` | *Which buses and depots* are out, hour by hour? | Line-level Markov failures on the feeder + graph search from the substation; calibrated to SAIFI |
 
 ---
 
@@ -88,7 +89,7 @@ Discretization bias at Δt = 1 h: mean outage 1.79 h → 2.34 h (unplanned), 8.6
 ## feeder_study.py
 
 ### Purpose
-Turn "grid availability" into a computed quantity. This script computes connection state via network topology and deliverable capacity under stress via power flow, on a standard test feeder with candidate depots attached as loads.
+Turn "grid availability" into a computed quantity. Your notes distinguish three grid quantities for a depot: (1) connection state, (2) rated capacity, (3) deliverable capacity under stress. This script computes (1) via network topology and (3) via power flow, on a standard test feeder with candidate depots attached as loads.
 
 ### The test feeder
 `pandapower.networks.case33bw()` — the Baran & Wu (1989) 33-bus distribution feeder:
@@ -175,6 +176,38 @@ Turn "grid availability" into a computed quantity. This script computes connecti
 
 ---
 
+## outage_sim.py
+
+### Purpose
+`markov_outages.py` treats each depot as a single up/down switch, so depots fail independently. Here every feeder **line** has its own up/down Markov process, and the feeder topology decides which buses (and depots) lose power. Depots that share a supply path now fail together.
+
+### How it works
+1. **`calibrate_line_rate()`** — on a radial feeder, a failure of line *l* interrupts everyone downstream, so SAIFI = Σ λ_l × (share of customers downstream of *l*). With one common rate, λ_line = SAIFI / Σ share_l. Customers are weighted by load (kW). Result: 0.124 failures per line per year (≈4 line failures/yr on the feeder).
+2. **`down_intervals()`** — alternating renewal process per line: exponential up-times (rate λ) and down-times (mean CAIDI), starting in steady state.
+3. **`simulate(years)`** — merges all lines' failure/repair times into one time-ordered list. Between consecutive events the set of failed lines is constant, so the code finds the buses cut off from bus 0 (breadth-first search) once per distinct failed set (cached), and accumulates outage hours and interruption counts per bus.
+4. **`hourly_states(n_hours, seed)`** — one sampled trajectory, hour by hour: lines down, buses out, depots out. A line counts as down in hour *h* if it is down for any part of that hour. **This is the function the 24-step simulation calls.**
+
+### Results (20,000 simulated years, unplanned outages only, no tie switching)
+- **Validation:** simulated SAIFI 0.904 vs. input 0.9037; SAIDI 96–98 min across seeds vs. 97.0 expected.
+
+| Depot | Bus | Outages / yr | Hours out / yr |
+|---|---|---|---|
+| Strong lateral | 21 | 0.63 | 1.1 |
+| Mid-trunk | 5 | 0.62 | 1.1 |
+| Weak lateral | 32 | 1.63 | 2.9 |
+| Feeder end | 17 | 2.10 | 3.7 |
+
+- **Correlation emerges from topology:** when at least one depot is out, 3 or 4 depots are out together 17% of the time (trunk or substation-exit failures). The depot-level model would put that near zero.
+- Depots far from the substation are exposed to more lines, so they fail ~3× as often as depots near it, even though every line has the same rate.
+
+### Assumptions specific to this script
+- Equal failure rate on every line (real rates depend on length, overhead vs. underground, exposure).
+- All SAIFI attributed to feeder lines; substation/sub-transmission outages not modeled separately.
+- No tie switching: dropped buses stay out until repair (overstates outage hours relative to real operation).
+- Unplanned outages only; MED, planned, and PSPS to be added with their own rates or as hazard scenarios.
+
+---
+
 ## Assumptions and limitations
 
 | Item | Current treatment | Effect / fix |
@@ -231,6 +264,32 @@ repeat for each depot placement, reusing the same random scenarios (common rando
 
 ---
 
+## Next steps
+
+### Before the NPPD interview (Oct 20)
+- [ ] Run both scripts yourself and be able to explain each output table.
+- [ ] Rerun `feeder_study.py` with different `TRUNK_RATING_KA` and `SUB_V` values to see which results are robust and which are assumption-driven.
+- [ ] Prepare a one-slide or one-paragraph summary: "Added EV depot load to a 33-bus feeder, found per-bus hosting limits, ran N-1 with tie-switch restoration; 14 of 32 outages restorable within limits; hosting capacity and restorability rank sites differently."
+- [ ] Be ready to explain radial vs. meshed behavior (load drops vs. flow redistribution) and why NPPD's radial 34.5–69 kV sub-transmission makes alternate-feed questions central.
+- [ ] Questions to ask: which planning software the sub-transmission group uses (not stated in NPPD's public documents); how large new loads are screened at 69 kV; how ice, wind, and flood events enter planning studies.
+
+### Project build order (each step produces something runnable)
+1. **Fleet on road graph with fixed α_v.** Movement, battery drain, charging, trip serving on the 10-node network. No grid physics yet.
+2. **Depot-level Markov.** Replace α_v with `markov_outages.py` up/down states. Sample continuous durations and round up to whole steps.
+3. **Feeder coupling.** Define the depot ↔ bus mapping; replace depot-level outages with line-level failures + `deliverable_kw()` (with curtailment and caching).
+4. **Hazard scenarios.** Map Failure Mode Table rows to grid lines and road edges. Add the PSPS footprint model: circle R(c, r) centered on WUI elements; depots inside are de-energized together. Report q = P(≥3 of 10 depots dark | PSPS) as an *output* across a sweep of r (closes the GAP in the table).
+5. **Monte Carlo wrapper.** Hazard-conditioned sampling, weighting by annual rate, convergence check (coefficient of variation of the estimate), common random numbers across placements.
+6. **Placement comparison.** Greedy vs. random vs. centrality, under single- vs. multi-node disruption; sensitivity to failure radius r and grid parameters.
+7. **Refinements.** Latin Hypercube Sampling for continuous parameters; lognormal outage durations; daily load curve via pandapower time series; two-way coupling (demand and repair delay).
+
+### Open questions to raise with Camila
+- Is a synthetic road–feeder mapping acceptable for the proof of concept, or should depots be tied to real SCE circuits?
+- Which resilience dimensions go into ϕ: connectivity, charging accessibility, trip completion, or all three?
+- Should the grid layer be one-way for the first results, with two-way coupling as an extension?
+- Acceptable sources for line ratings and depot sizes (e.g., NREL depot-charging figures).
+
+---
+
 ## References
 
 **Data**
@@ -247,3 +306,8 @@ repeat for each depot placement, reusing the same random scenarios (common rando
 - Panteli, M., Pickering, C., Wilkinson, S., Dawson, R., & Mancarella, P. (2017). Power system resilience to extreme weather: fragility modeling, probabilistic impact assessment, and adaptation measures. *IEEE Transactions on Power Systems*, 32(5), 3747–3757.
 - Zou, Q., & Chen, S. (2020). Resilience modeling of interdependent traffic-electric power system subject to hurricanes. *Journal of Infrastructure Systems*, 26(1), 04019034.
 - Resilience of interdependent power and transportation networks under extreme events: a systematic literature review (2026): https://www.sciencedirect.com/science/article/pii/S2590198226004434
+
+**Planning context**
+- NPPD Facility Connection Requirements (v7.1, Sept 2025) — sub-transmission at 34.5–69 kV operated as a radial delivery system: https://docs.nppd.com/FacilityConnectionRequirements.pdf
+- NERC TPL-001-5.1, Transmission System Planning Performance Requirements (planning events P0–P7).
+- PNNL-32460, *Electric Vehicles at Scale* — transformer thermal and voltage violations typically limit EV hosting capacity: https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-32460.pdf
