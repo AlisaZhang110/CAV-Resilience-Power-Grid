@@ -13,8 +13,7 @@
 3. [feeder_study.py](#feeder_studypy)
 4. [Assumptions and limitations](#assumptions-and-limitations)
 5. [How these fit into the main simulation](#how-these-fit-into-the-main-simulation)
-6. [Next steps](#next-steps)
-7. [References](#references)
+6. [References](#references)
 
 ---
 
