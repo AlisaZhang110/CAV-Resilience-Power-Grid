@@ -247,8 +247,3 @@ repeat for each depot placement, reusing the same random scenarios (common rando
 - Panteli, M., Pickering, C., Wilkinson, S., Dawson, R., & Mancarella, P. (2017). Power system resilience to extreme weather: fragility modeling, probabilistic impact assessment, and adaptation measures. *IEEE Transactions on Power Systems*, 32(5), 3747–3757.
 - Zou, Q., & Chen, S. (2020). Resilience modeling of interdependent traffic-electric power system subject to hurricanes. *Journal of Infrastructure Systems*, 26(1), 04019034.
 - Resilience of interdependent power and transportation networks under extreme events: a systematic literature review (2026): https://www.sciencedirect.com/science/article/pii/S2590198226004434
-
-**Planning context**
-- NPPD Facility Connection Requirements (v7.1, Sept 2025) — sub-transmission at 34.5–69 kV operated as a radial delivery system: https://docs.nppd.com/FacilityConnectionRequirements.pdf
-- NERC TPL-001-5.1, Transmission System Planning Performance Requirements (planning events P0–P7).
-- PNNL-32460, *Electric Vehicles at Scale* — transformer thermal and voltage violations typically limit EV hosting capacity: https://www.pnnl.gov/main/publications/external/technical_reports/PNNL-32460.pdf
