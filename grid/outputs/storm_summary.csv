@@ -1,0 +1,25 @@
+day,hour,causes,lines_down,substation_up,ties_closed,buses_dark_before,buses_dark,depots_dark,depot_supply_frac,v_min,max_loading_pct
+0,0,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,1,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,2,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,3,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,4,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,5,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,6,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,7,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,8,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,9,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,10,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,11,-,[],True,[],0,0,-,1.0,0.955,81.7
+0,12,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,13,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,14,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,15,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,16,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,17,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,18,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,19,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,20,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,21,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,22,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3
+0,23,storm,"[2, 18]",True,[],26,26,"D_mid_trunk, D_feeder_end, D_strong_lateral, D_weak_lateral",0.0,1.033,30.3

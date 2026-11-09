@@ -2,7 +2,7 @@
 Project #4 - 10-node AV/HV traffic simulation with time-of-day demand (v3)
 ==========================================================================
 
-What changed from traffic_sim_no2/av_traffic_sim.py
+What changed from ../v2_failure_mode_2/av_traffic_sim.py
   * Demand follows an hourly profile instead of 100 cars looping all day.
       - Human trips: one vehicle per trip, spawned at its departure time and removed on arrival.
         Hourly shape = 2017 NHTS, LA-Long Beach-Anaheim CBSA, household-vehicle driver trips.

@@ -1,11 +1,11 @@
 # Project #4 — Time-of-day AV/HV traffic simulation (v3)
 
-`av_traffic_sim_tod.py` simulates one day on the same 10-node / 17-edge network as `traffic_sim_no2`. The difference is
+`av_traffic_sim_tod.py` simulates one day on the same 10-node / 17-edge network as `../v2_failure_mode_2`. The difference is
 that demand follows an **hourly profile** instead of 100 cars looping all day. Human-driven and AV demand have
 separate peaks. Congestion builds up at those peaks, and the incident and depot-outage rows of the Failure Mode Table
 are layered on top.
 
-`traffic_sim_no2/` is left unchanged. v3 numbers are **not directly comparable** with v2 because the demand model,
+`../v2_failure_mode_2/` is left unchanged. v3 numbers are **not directly comparable** with v2 because the demand model,
 freeway speeds and row-2 edge set all changed (see "Changes from v2").
 
 Tags used in the code and below: **[DOC]** Failure Mode Table or Project notes · **[DATA]** computed here from a public
