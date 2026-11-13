@@ -194,6 +194,12 @@ single depot dark for 2 h barely matters, even with only 4 depots. Making all fo
 (`--chargers 1,2,4,5`) dark for 10 h from 10:00 drops service from 173 to 116 served trips (54 unserved). The power
 rows matter when outages are **long or correlated** (rows 10, 12), not routine ones.
 
+**Siting check (all 210 four-depot layouts, 2 normal weekdays each, uniform demand).** Mean AV wait ranges from
+6.0 min (Culver City, Downtown, Playa del Rey, Mid-City) to 10.0 min. The notes' set {1, 2, 4, 5} ranks #200 (8.5 min,
+28% empty miles). The five best layouts all include both Culver City and Downtown LA.
+
+The scripts, saved results and figures for everything in this section are in `analysis/`.
+
 ---
 
 ## Outputs
