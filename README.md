@@ -23,6 +23,7 @@ the fleet keeps serving trips through those hazards.
 |---|---|---|
 | `data/Failure_Mode_Table.xlsx` | Hazard rates, durations, sources, priority and feasibility rankings | Complete |
 | `traffic/v3_time_of_day/` | **Current traffic layer.** Hourly human/AV demand (NHTS 2017), BPR congestion, AV fleet dispatch and charging, table rows 1, 1b, 1c, 2, 4, 5, 9, 10 (+ forced 11, 12) | Runs; see its README |
+| `traffic/v3_time_of_day/analysis/` | Scripts, saved results and figures behind the Nov 2026 advisor slides | Reproducible; see its README |
 | `traffic/v2_failure_mode_2/` | Earlier version: 100 looping cars, row 2 only. Kept for comparison | Superseded |
 | `grid/` | **Current grid layer** (`grid_layer` package + `run_examples.py`): routine outages calibrated to SCE SAIFI/CAIDI, PSPS / earthquake / storm scenarios, restoration switching, curtailment | Runs; see its README |
 | `grid/legacy/` | First grid scripts (`markov_outages.py`, `feeder_study.py`, `outage_sim.py`) and their README | Superseded by `grid/grid_layer` |
@@ -56,13 +57,20 @@ python run_examples.py                             # calibration, N-1, ordinary 
 | 13–16 | Wildfire / flood edge closures | not yet (needs wildfire-zone and floodplain edge tags + multi-day horizon) |
 | 18 | Earthquake | grid (`substation_loss()`); road side not yet |
 
-## Next steps
+## Next steps: full depot siting
 
-1. Couple the layers: a depot↔bus table so the grid layer's deliverable MW sets depot charging power in the traffic
-   layer each hour.
-2. Add multi-edge and long-duration road hazards (rows 3/6, 13–16, 18), following the table's Feasibility ranking.
-3. Monte Carlo wrapper with hazard-conditioned sampling, weighted by annual rate.
-4. Placement comparison: greedy vs. random vs. centrality depot sets, reusing the same random scenarios.
+Planned study (not built yet). It replaces the notes' fixed charger set {1, 2, 4, 5} with an open siting question, and
+keeps the notes' set as the benchmark. A first check (`traffic/v3_time_of_day/analysis/siting_check.py`: all 210
+four-depot layouts, normal weekdays, uniform demand) already ranks the notes' set #200 of 210 on AV wait.
+
+1. **Gravity demand:** q_ij = K·P_i·A_j / d_ij, with P = resident workers and A = jobs per node (LEHD LODES).
+2. **Grid coupling:** map each node to a feeder bus (tied to the grid layer's WUI and floodplain zones), so the power
+   each depot can actually draw, hour by hour, sets how many chargers it can run.
+3. **Multi-day hazard scenarios** from the Failure Mode Table (major storm, PSPS, wildfire, flood, earthquake), each
+   with its annual rate, including correlated multi-depot outages and the road-side closures (rows 3/6, 13–16, 18).
+4. **Enumerate every layout of 2–6 depots** (837 layouts) and rank them on normal-day service and on rate-weighted
+   expected service lost under the hazard scenarios. Report the trade-off (Pareto) front for each depot count, and
+   where the notes' layout falls on it.
 
 ## Data sources
 
