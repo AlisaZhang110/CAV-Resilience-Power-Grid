@@ -18,8 +18,8 @@ the fleet keeps serving trips through those hazards.
 ```
 
 **Current headline (coupled/README.md):** with Waymo's existing depots at Santa Monica, Sawtelle, LAX and Culver City,
-the best 5th depot is **Downtown LA** (-0.51 min annual rider wait, -6.6%). Hollywood ties it on average, but Downtown
-keeps working in a PSPS and has the stronger grid connection. If Tesla adds a fleet, **universal (shared) depots beat exclusive ones** at every
+**Downtown LA and Hollywood tie** as the best 5th depot (-0.51 and -0.50 min annual rider wait). Downtown is ahead on
+resilience only through placeholder assumptions (Hollywood tagged WUI; Downtown placed next to the substation). If Tesla adds a fleet, **universal (shared) depots beat exclusive ones** at every
 fleet size tested.
 
 ## Repository layout

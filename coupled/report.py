@@ -460,7 +460,7 @@ def fig_av_check(path):
     ax.set_ylim(0, 13)
     _hgrid(ax)
     ax.legend(frameon=False, fontsize=8.5, loc="upper left", ncol=2)
-    ax.set_title("AV demand = ride-hail shape, scaled to 5% of VMT")
+    ax.set_title("AV demand = ride-hail shape, scaled to about 5% of vehicle miles")
     fig.savefig(path, dpi=180, bbox_inches="tight")
     plt.close(fig)
 

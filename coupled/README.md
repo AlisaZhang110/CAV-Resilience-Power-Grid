@@ -297,7 +297,7 @@ Congestion metrics (`metrics()`):
 
 ## 5. Results (2.0 mi/kWh; section 5.5 compares 3.5)
 
-### 5.1 Which 5th depot? **Downtown LA or Hollywood on average; Downtown is the more resilient of the two**
+### 5.1 Which 5th depot? **Downtown LA or Hollywood: tied on average; Downtown ahead on resilience under placeholder assumptions**
 
 ![Ranking](figures/fig4_placement_ranking.png)
 
@@ -305,7 +305,7 @@ Annual-weighted rider wait with the existing four depots: **7.78 min**.
 
 | Add a depot at | Change in rider wait (min) | 95% CI | Notes |
 |---|---|---|---|
-| **Downtown LA (6)** | **-0.51** (-6.6%) | ±0.21 | Best or tied for best in 7 of 12 scenarios; strongest grid position |
+| **Downtown LA (6)** | **-0.51** (-6.6%) | ±0.21 | Best or tied for best in 7 of 12 scenarios; strongest grid position in the placeholder bus mapping |
 | **Hollywood (9)** | **-0.50** | ±0.18 | Tied with Downtown on average; depot dark in PSPS (WUI zone) |
 | Mid-City (8) | -0.34 | ±0.20 | Weak grid position (bus 10) |
 | Pasadena (10) | -0.27 | ±0.23 | Far end of the network and of the feeder; WUI |
@@ -319,8 +319,9 @@ Annual-weighted rider wait with the existing four depots: **7.78 min**.
 - **Grid side (fig 10).** Under every single-line outage, a 2-port Downtown depot keeps full power in 91% of cases.
   Hollywood keeps it in 66% and Pasadena in 47%. At 4 ports (0.43 MW), Downtown still gets 98% of its power with
   nothing failed; Hollywood gets 63%, Mid-City 54%, Pasadena 53%. Any plan to grow the 5th depot points to Downtown.
-- **So:** on average Downtown and Hollywood are equivalent; Downtown is the pick because it keeps working in a PSPS
-  and has the stronger grid connection.
+- **So:** on average Downtown and Hollywood are equivalent. Downtown comes out ahead only through two placeholder
+  assumptions: Hollywood is tagged as WUI (so it goes dark in a PSPS), and Downtown was put on bus 2 next to the
+  substation. Neither comes from SCE data; real feeder assignments and PSPS circuit maps could reverse the call.
 - **Why the east side (interpretation, not measured directly).** All four existing depots are on the Westside, so
   AVs that end trips in Hollywood, Downtown or Pasadena drive back west to charge. A depot east of Culver City
   shortens those trips; human-driver delay also drops ~2 s per trip, consistent with less empty AV driving.
