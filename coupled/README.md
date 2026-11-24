@@ -27,6 +27,7 @@ python -m coupled.check_av_demand                # is AV demand a scaled-down ri
 python -m coupled.calibrate_row8                 # row 8 probability (already set in config.py)
 python -m coupled.experiments all                # ~3,000 simulated days, ~15 min on 2 cores
 python -m coupled.experiments placement_more     # +2,340 days: more seeds for the placement ranking
+python -m coupled.experiments compare35          # the same runs at 3.5 mi/kWh, for section 5.5
 python -m coupled.report                         # tables -> results/, figures -> figures/
 ```
 
@@ -162,7 +163,7 @@ traffic is.
 | 1b Rain day | `Params.rain_day`, `cap_factor()` | Scenario: every road x0.92; rows 1-6 x2.33 | x2.33 from I-880 accident data [DOC]; x0.92 [ASSUMPTION; table GAP] |
 | 1c Recurring congestion | `travel_time()` (v3) | Not an event: BPR + hourly demand | — |
 | 7b Battery depletion | `advance()`, `_strand_on_edge()` (stream `r_7b`) | Each minute, an AV's energy used so far on the road = miles x share of the traversal done. If that reaches its remaining range, it stops **on that road**, any rider is logged unserved, and the road direction is cut to 0.35-0.78 for 30-60 min | Table: stuck in lane until towed; AAA 30-60 min [DOC]. Rare, because dispatch refuses trips the AV can't finish with a 10-mi reserve |
-| 8 AV obstructs clearance | `_log_event()` (stream `r_amp`) | When a row 1, 2 or 3 incident starts on a road with an AV driving on it: with p = 0.000187, +5 / +15 / +30 min. A row-3 extension also extends its two diversion roads | Table: multiplier on clearance when an AV is present [DOC]. `calibrate_row8.py`: 37.5 incidents/day start with an AV present, so p = 0.17 x 15 / (365 x 37.5) gives 0.17 obstructions per AV-year [DOC SFFD] |
+| 8 AV obstructs clearance | `_log_event()` (stream `r_amp`) | When a row 1, 2 or 3 incident starts on a road with an AV driving on it: with p = 0.000184 (0.000187 at 3.5 mi/kWh), +5 / +15 / +30 min. A row-3 extension also extends its two diversion roads | Table: multiplier on clearance when an AV is present [DOC]. `calibrate_row8.py`: 37.9 incidents/day start with an AV present, so p = 0.17 x 15 / (365 x 37.9) gives 0.17 obstructions per AV-year [DOC SFFD] |
 | 7 Fleet-wide stall | `start_stall()` (stream `r_stall`); trigger in `update_hazards()` (stream `r_cond`); scenario `s_stall()` | Company dispatch paused 6-20 h (`self.paused`); ~3% of its moving AVs stall 60-120 min, cut their lane to 0.35-0.78, then leave service (rider unserved); the rest stop 2-10 min. Triggered by schedule (0.083/yr) **or** when >= 3 of 10 nodes have dark signals, p = 0.5 per company, once per outage | Shares and durations [DOC]; 10-min and 20-h upper bounds and the dark-signal trigger [ASSUMPTION, one event: Dec 2025 SF] |
 
 Every configuration-dependent draw (rows 7, 7b, 8) has its own random stream so it never shifts the shared draws.
@@ -182,9 +183,11 @@ Every configuration-dependent draw (rows 7, 7b, 8) has its own random stream so 
 `update_hazards()` then applies the result:
 
 - **0 MW** at a built depot: `_dark(node, inf, "grid")`; restored when power returns.
-- **Partial MW**: `depot_rate()` gives each plugged-in AV 6.3 mi/min x min(1, available MW / (number charging x 0.108 MW)).
-- `nearest_charger()` scores each depot the company may use: drive time + expected queue (vehicles ahead x 20 min / 2
-  ports) + extra charging time from partial power, 20 x (1 / power share - 1).
+- **Partial MW**: `depot_rate()` gives each plugged-in AV 3.6 mi/min (1.8 kWh/min x 2.0 mi/kWh, section 2.6) x
+  min(1, available MW / (number charging x 0.108 MW)).
+- `nearest_charger()` scores each depot the company may use: drive time + expected queue (vehicles ahead x session /
+  2 ports) + extra charging time from partial power, session x (1 / power share - 1). A typical session is
+  20 x 3.5 / (mi per kWh) min: ~35 min at 2.0 mi/kWh.
 - A road node's signals are dark if its bus is dark **after** switching.
 
 | Row | Scenario function | Rule | Rate (/yr) |
@@ -218,6 +221,19 @@ comes out of the existing congestion model.
 
 v3's independent per-depot outages (its rows 9 and 10) are **replaced** by the grid layer, so outages are now
 correlated through the feeder. Row 17 is not in the table.
+
+### 2.6 AV energy use: 2.0 mi/kWh (changed from 3.5)
+
+Traffic v3 used 3.5 mi/kWh from the "Waymo Number Breakdown" notes. That value doesn't fit the rest of the inputs:
+the I-Pace's 90 kWh battery x 3.5 mi/kWh would give ~315 mi, but the model's range is 180 mi [DOC]. Estimates for
+Waymo-modified I-Paces are 50-60 kWh per 100 mi, about 1.7-2.0 mi/kWh, because the sensors and computers draw power
+all the time [SRC: eletric-vehicles.com, reporting earlier estimates; not a Waymo figure]. 90 kWh x 2.0 = 180 mi, so
+**the coupled model uses 2.0 mi/kWh** (`config.AV_MI_PER_KWH`). With the 1.8 kWh/min charger [DOC] that adds 3.6 mi
+of range per minute instead of 6.3, so sessions take ~35 min instead of ~20 and depots are busier.
+
+Waymo's Ojai (Zeekr) has a 93 kWh battery per its NHTSA certification filing (earlier reports said 76 kWh) [SRC]. The
+model has one vehicle type. Row 8 was recalibrated at each value (`config.AMP_P_BY_MPK`). The same experiments at
+3.5 mi/kWh are kept as `results/*_3p5mpk_runs.csv` (`python -m coupled.experiments compare35`); section 5.5 compares them.
 
 ---
 
@@ -278,30 +294,32 @@ Congestion metrics (`metrics()`):
 
 ---
 
-## 5. Results
+## 5. Results (2.0 mi/kWh; section 5.5 compares 3.5)
 
-### 5.1 Which 5th depot? **Downtown LA**, with Hollywood close behind on ordinary days
+### 5.1 Which 5th depot? **Downtown LA or Hollywood on average; Downtown is the more resilient of the two**
 
 ![Ranking](figures/fig4_placement_ranking.png)
 
-Annual-weighted rider wait with the existing four depots: **7.39 min**.
+Annual-weighted rider wait with the existing four depots: **7.78 min**.
 
 | Add a depot at | Change in rider wait (min) | 95% CI | Notes |
 |---|---|---|---|
-| **Downtown LA (6)** | **-0.40** (-5.5%) | ±0.18 | Best overall; best or tied for best in 9 of 12 scenarios, within 0.15 min of the best in the other 3 |
-| Hollywood (9) | -0.32 | ±0.16 | Close to Downtown on ordinary days; depot dark in PSPS (WUI zone) |
-| Mid-City (8) | -0.22 | ±0.20 | Weak grid position (bus 10) |
-| Pasadena (10) | -0.19 | ±0.20 | Far end of the network and of the feeder; WUI |
-| West Hollywood (3) | -0.05 | ±0.19 | Not distinguishable from no new depot |
-| Playa del Rey (7) | -0.00 | ±0.11 | Next to two existing depots; adds nothing measurable |
+| **Downtown LA (6)** | **-0.51** (-6.6%) | ±0.21 | Best or tied for best in 7 of 12 scenarios; strongest grid position |
+| **Hollywood (9)** | **-0.50** | ±0.18 | Tied with Downtown on average; depot dark in PSPS (WUI zone) |
+| Mid-City (8) | -0.34 | ±0.20 | Weak grid position (bus 10) |
+| Pasadena (10) | -0.27 | ±0.23 | Far end of the network and of the feeder; WUI |
+| West Hollywood (3) | -0.19 | ±0.16 | Small gain |
+| Playa del Rey (7) | -0.00 | ±0.10 | Next to two existing depots; adds nothing measurable |
 
-- **Downtown vs Hollywood** (paired): -0.09 ± 0.07 min per year overall (about 1.3 standard errors), so the annual
-  average doesn't clearly separate them. Under PSPS Downtown is better by 0.26 ± 0.14 min (0.41 with the row-7
-  trigger off), because Hollywood's depot is in the WUI zone and goes dark. That makes Downtown the more resilient
-  pick. Downtown vs Mid-City: -0.19 ± 0.06, a clear difference.
+- **Downtown vs Hollywood** (paired): -0.02 ± 0.08 min per year, a tie. On ordinary days they differ by 0.01 min.
+  Under PSPS, Hollywood's depot is in the WUI zone and goes dark: Downtown is better by 0.15 ± 0.12 min with the
+  row-7 trigger on and 0.51 min with it off (the fleet suspension hides the difference). Downtown vs Mid-City:
+  -0.18 ± 0.09.
 - **Grid side (fig 10).** Under every single-line outage, a 2-port Downtown depot keeps full power in 91% of cases.
   Hollywood keeps it in 66% and Pasadena in 47%. At 4 ports (0.43 MW), Downtown still gets 98% of its power with
   nothing failed; Hollywood gets 63%, Mid-City 54%, Pasadena 53%. Any plan to grow the 5th depot points to Downtown.
+- **So:** on average Downtown and Hollywood are equivalent; Downtown is the pick because it keeps working in a PSPS
+  and has the stronger grid connection.
 - **Why the east side (interpretation, not measured directly).** All four existing depots are on the Westside, so
   AVs that end trips in Hollywood, Downtown or Pasadena drive back west to charge. A depot east of Culver City
   shortens those trips; human-driver delay also drops ~2 s per trip, consistent with less empty AV driving.
@@ -316,10 +334,10 @@ Human-driver delay per trip (min), existing 4 depots, same 25 days with and with
 
 | Scenario | Signals ignored | Dark signals | Change |
 |---|---|---|---|
-| Major event day (10) | 4.83 | 6.37 | +32% |
-| PSPS (12) | 4.85 | 6.74 | +39% |
-| Earthquake (18) | 22.15 | 30.15 | +36% |
-| Wildfire 3 roads + PSPS (14) | 12.22 | 14.43 | +18% |
+| Major event day (10) | 4.83 | 6.40 | +32% |
+| PSPS (12) | 4.86 | 6.76 | +39% |
+| Earthquake (18) | 22.06 | 30.11 | +36% |
+| Wildfire 3 roads + PSPS (14) | 12.21 | 14.37 | +18% |
 | Line fault (9), planned (11), flood 100-yr (15) | 4.85-5.12 | 4.90-5.21 | +1-2% (switching restores power) |
 
 The 500-yr flood cuts Playa del Rey off completely: trips to or from it never finish (about 3,190 of ~3,995 trips
@@ -332,11 +350,11 @@ with that in mind.
 
 ### 5.3 Row 7 dominates big outages
 
-With the dark-signal stall trigger on, rider wait on a PSPS day is 13.2 min with the existing depots; with it off,
-8.4 min. For a major event day the figures are 10.6 and 8.6. The suspension stops service at every depot equally,
-so it shrinks the differences between sites (with it off, Mid-City edges ahead on a major event day; Downtown
-stays first under PSPS; `results/placement_row7_sensitivity.csv`). How a fleet behaves at dark signals matters more
-for big outages than where its fifth depot is.
+With the dark-signal stall trigger on, rider wait on a PSPS day is 13.4 min with the existing depots; with it off,
+8.6 min. For a major event day the figures are 11.0 and 9.1. The suspension stops service at every depot equally,
+so it shrinks the differences between sites (with it off, Mid-City edges ahead on a major event day; Downtown is
+clearly first under PSPS; `results/placement_row7_sensitivity.csv`). How a fleet behaves at dark signals matters
+more for big outages than where its fifth depot is.
 
 ### 5.4 A second fleet: universal depots win at every fleet size
 
@@ -346,29 +364,39 @@ Waymo 15 AVs; Tesla 5, 10 or 15 AVs with proportional demand. Annual-weighted ri
 
 | Tesla fleet | Tesla shares Waymo's 4 | Best exclusive (Tesla-only new depot) | Best universal (all depots shared) |
 |---|---|---|---|
-| 5 AVs | 9.85 | 9.72 (Downtown) | **8.98** (Hollywood; Downtown 9.00) |
-| 10 AVs | 8.95 | 9.23 (Downtown) | **8.43** (Hollywood; Downtown 8.45) |
-| 15 AVs | 7.66 | 7.74 (Downtown) | **7.08** (Hollywood; Downtown 7.28) |
+| 5 AVs | 9.97 | 9.87 (Downtown) | **9.40** (Downtown; Hollywood 9.48) |
+| 10 AVs | 9.36 | 9.53 (Hollywood) | **8.94** (Downtown; Hollywood 9.06) |
+| 15 AVs | 7.95 | 8.21 (Downtown) | **7.35** (Downtown; Hollywood 7.39) |
 
-- **Universal beats exclusive** at the same site by 0.45-0.99 min (paired, 3-5 standard errors), for every fleet
-  size at both Downtown and Hollywood.
+- **Universal beats exclusive** at the same site by 0.47-0.98 min (paired, about 2-5 standard errors), for every
+  fleet size at both Downtown and Hollywood.
 - **One exclusive depot is no better than none.** Running Tesla's whole fleet out of a single private depot is about
-  as good as, or slightly worse than, letting Tesla charge at Waymo's four; every such difference is within noise
-  (largest +0.41 ± 0.27 min). A single private depot puts every Tesla charge trip on one location.
-- **Waymo gains from sharing too.** With 15 Tesla AVs, Waymo's riders wait 8.05 min when Tesla crowds Waymo's
-  four depots, 7.18-7.40 min when the 5th depot is universal at Hollywood or Downtown, and 7.76-8.05 min with an
-  exclusive Tesla depot. Charging queues tell the same story: 31 min/day of queuing at Waymo's four, 6-20 min/day
-  with a universal 5th depot.
-- **Site.** Hollywood and Downtown are tied for the universal depot: the largest gap is 0.20 ± 0.16 min (15 Tesla
-  AVs). Downtown is the robust choice for the reasons in 5.1. The worst exclusive site is Pasadena (8.92 min at
-  15 AVs, 40 min/day of queuing).
+  as good as, or worse than, letting Tesla charge at Waymo's four; every such difference is within noise (largest
+  +0.42 ± 0.30 min). A single private depot puts every Tesla charge on one location: at 15 Tesla AVs the exclusive
+  layouts queue 150-270 min/day of charging.
+- **Waymo gains from sharing too.** With 15 Tesla AVs, Waymo's riders wait 8.20 min when Tesla crowds Waymo's
+  four depots, 7.47-7.53 min when the 5th depot is universal at Downtown or Hollywood, and 8.22-8.56 min with an
+  exclusive Tesla depot. Charging queues: 91 min/day at Waymo's four, 29-30 min/day with a universal 5th depot at
+  Downtown or Hollywood.
+- **Site.** Downtown and Hollywood are tied for the universal depot (Downtown ahead by 0.04-0.12 min, within noise).
+  The worst exclusive site is Pasadena (9.48 min at 15 AVs, 270 min/day of queuing).
 - **Small fleets wait regardless.** A 5-AV Tesla fleet gives its riders 15-17 min waits under every depot policy;
   at 15 AVs it is ~7 min with a good layout. For a small entrant, fleet size matters more than depot policy.
 
 ![Tesla site](figures/fig8_tesla_site.png)
 
+### 5.5 What changed from 3.5 to 2.0 mi/kWh
+
+![Energy](figures/fig11_energy_compare.png)
+
+- Longer charging sessions raise the baseline rider wait from 7.39 to 7.78 min and the ordinary-day charging queue at
+  the existing four depots from 5 to 13 min/day.
+- Every candidate depot is worth more: Downtown -0.40 -> -0.51 min, Hollywood -0.32 -> -0.50, West Hollywood
+  -0.05 -> -0.19. Hollywood catches up with Downtown on the annual average.
+- Universal still beats exclusive at every fleet size, and exclusive Tesla depots get much longer queues.
+
 Full tables: `results/summary.md`, `results/placement_annual.csv`, `results/placement_by_scenario.csv`,
-`results/fleets_summary.csv`.
+`results/fleets_summary.csv`, `results/energy_compare.csv`.
 
 ---
 

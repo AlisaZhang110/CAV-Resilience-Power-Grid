@@ -99,7 +99,18 @@ AMP_EXTRA_MIN = (5, 15, 30)       # [DOC] +5 / +15 / +30 min
 AMP_PER_AV_YEAR = 0.17            # [DOC] SFFD 2023: ~0.17 incidents per vehicle-year
 # P(obstruction | incident starts on an edge with an AV on it). Calibrated by
 # `python -m coupled.calibrate_row8` so the simulated rate is 0.17 per AV-year (seeds 0-19 weekday).
-AMP_P_GIVEN_PRESENT = 0.000187   # 37.5 AV-present incidents/day, 15 AVs (after fixes a-d)
+AMP_P_GIVEN_PRESENT = 0.000184   # 37.9 AV-present incidents/day, 15 AVs, 2.0 mi/kWh
+AMP_P_BY_MPK = {2.0: 0.000184, 3.5: 0.000187}   # calibrated separately at each energy value (37.9 / 37.5 per day)
+
+# ---------------------------------------------------------------------------
+# 5b. AV energy use
+# ---------------------------------------------------------------------------
+# Traffic v3 used 3.5 mi/kWh [DOC notes "Waymo Number Breakdown"]. Waymo-modified I-Paces are estimated at
+# 50-60 kWh/100 mi (~1.7-2.0 mi/kWh) [SRC: eletric-vehicles.com, citing prior estimates], and the I-Pace's
+# 90 kWh battery [SRC: Jaguar/Waymo 2018 announcement] x 2.0 mi/kWh = 180 mi, the range already used here
+# [DOC]. 3.5 mi/kWh would imply ~315 mi. The coupled model therefore uses 2.0; at the 1.8 kWh/min charger
+# [DOC] that adds 3.6 mi of range per minute (3.5 mi/kWh: 6.3). The 3.5 results are kept for comparison.
+AV_MI_PER_KWH = 2.0
 
 # ---------------------------------------------------------------------------
 # 6. Fleets

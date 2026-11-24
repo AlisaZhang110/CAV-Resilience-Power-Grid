@@ -65,7 +65,7 @@ class GridLink:
 
 
 class CoupledSim(Sim):
-    def __init__(self, seed, fleets, access, built, events, feeder, signals=True, profiles=None):
+    def __init__(self, seed, fleets, access, built, events, feeder, signals=True, profiles=None, mi_per_kwh=None):
         """
         fleets : [dict(name, n_av, requests_per_day)]   (first fleet = Waymo, the v3 demand stream)
         access : {company: set of depot nodes it may charge at}
@@ -80,6 +80,7 @@ class CoupledSim(Sim):
         p.ports_per_charger = C.PORTS_PER_DEPOT
         p.rain_day = events["rain"]
         p.forced_blocks = list(events["blocks"])
+        p.mi_per_kwh = C.AV_MI_PER_KWH if mi_per_kwh is None else mi_per_kwh   # see config 5b
         super().__init__(p, seed, hazards_on=True, profiles=profiles)
 
         self.companies = [f["name"] for f in fleets]
@@ -189,7 +190,7 @@ class CoupledSim(Sim):
             e = ekey(*where)
             if any(a.state == "driving" and a.edge and ekey(*a.edge) == e for a in self.avs):
                 self.amp_present += 1
-                if self.r_amp.random() < C.AMP_P_GIVEN_PRESENT:
+                if self.r_amp.random() < C.AMP_P_BY_MPK.get(self.p.mi_per_kwh, C.AMP_P_GIVEN_PRESENT):
                     extra = self.r_amp.choice(C.AMP_EXTRA_MIN)
                     self.amp_events += 1
                     if row == "1" and self.cap_events[where]:
@@ -315,9 +316,10 @@ class CoupledSim(Sim):
             if c not in dist[node]:
                 continue
             busy = len(self.charging_at[c]) + len(self.charge_queue[c])
-            wait = max(0, busy - C.PORTS_PER_DEPOT + 1) * 20.0 / C.PORTS_PER_DEPOT   # ~20-min session
+            sess = 20.0 * 3.5 / self.p.mi_per_kwh       # typical session: ~20 min at 3.5 mi/kWh, longer if less efficient
+            wait = max(0, busy - C.PORTS_PER_DEPOT + 1) * sess / C.PORTS_PER_DEPOT
             frac = self.depot_mw[c] / C.DEPOT_RATED_MW
-            slow = 20.0 * (1.0 / max(frac, 0.05) - 1.0)                          # partial power
+            slow = sess * (1.0 / max(frac, 0.05) - 1.0)                          # partial power
             score = dist[node][c] + wait + slow
             if best is None or score < best[0]:
                 best = (score, c)

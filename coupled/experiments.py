@@ -5,6 +5,7 @@ experiments.py -- run the depot-placement and multi-fleet experiments.
     python -m coupled.experiments fleets        # Waymo + Tesla: exclusive vs universal depots
     python -m coupled.experiments showcase      # hour-by-hour runs used in the time-series figures
     python -m coupled.experiments all
+    python -m coupled.experiments compare35     # same runs at 3.5 mi/kWh (the earlier value), for comparison
 
 Every configuration sees the same seeds, so the same demand and the same hazard events
 (common random numbers): differences between configurations come from the configuration.
@@ -53,7 +54,8 @@ def run_job(job):
     C.STALL_ON_DARK_SIGNALS = job.get("stall_on_dark", True)
     ev = events_for(job["scenario"], job["seed"])
     sim = CoupledSim(job["seed"], job["fleets"], job["access"], set(job["built"]), ev,
-                     _W["feeder"], signals=job.get("signals", True), profiles=_W["prof"]).run()
+                     _W["feeder"], signals=job.get("signals", True), profiles=_W["prof"],
+                     mi_per_kwh=job.get("mi_per_kwh")).run()
     row = {k: job[k] for k in ("experiment", "config", "variant", "scenario", "seed")}
     row.update(job.get("tags", {}))
     row.update({k: round(v, 4) if isinstance(v, float) else v for k, v in sim.metrics().items()})
@@ -157,5 +159,10 @@ if __name__ == "__main__":
         run("fleets", fleet_jobs())
     if what in ("showcase", "all"):
         run("showcase", showcase_jobs())
+    if what == "compare35":    # the same runs at v3's 3.5 mi/kWh -> results/*_3p5mpk_runs.csv
+        run("placement_3p5mpk", [dict(j, mi_per_kwh=3.5) for j in placement_jobs()])
+        run("placement_3p5mpk", [dict(j, mi_per_kwh=3.5) for j in
+                                 placement_jobs(n_ord=60, n_scen=15, start_ord=30, start_scen=10)], append=True)
+        run("fleets_3p5mpk", [dict(j, mi_per_kwh=3.5) for j in fleet_jobs()])
     if what == "placement_more":   # more seeds for the placement ranking (appended)
         run("placement", placement_jobs(n_ord=60, n_scen=15, start_ord=30, start_scen=10), append=True)

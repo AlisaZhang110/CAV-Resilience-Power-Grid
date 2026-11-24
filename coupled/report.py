@@ -26,7 +26,7 @@ HERE = os.path.dirname(os.path.abspath(__file__))
 RES, FIG = os.path.join(HERE, "results"), os.path.join(HERE, "figures")
 
 # palette: dataviz reference instance, light mode (validated: scripts/validate_palette.js)
-SURF, INK, INK2, MUTED, GRID = "#fcfcfb", "#0b0b0b", "#52514e", "#8a8984", "#e4e3df"
+SURF, INK, INK2, MUTED, GRID = "#ffffff", "#0b0b0b", "#52514e", "#8a8984", "#e4e3df"
 BLUE, ORANGE, AQUA, YELLOW = "#2a78d6", "#eb6834", "#1baf7a", "#eda100"
 DIVERGING = LinearSegmentedColormap.from_list(
     "bluegrayred", ["#184f95", "#5598e7", "#cde2fb", "#f0efec", "#f7c9c5", "#e66767", "#a8302f"])
@@ -354,7 +354,7 @@ def fig_timeseries(path):
         ax.set_ylabel("%")
         ax.set_ylim(-5, 105)
         _hgrid(ax)
-        ax.legend(frameon=False, fontsize=8.5, loc="lower left")
+        ax.legend(frameon=False, fontsize=8.5, loc="lower right", bbox_to_anchor=(1, 1.0), ncol=2)
         ax.set_title("Grid state", fontsize=10.5)
         ax = axes[1]
         ax.plot(h, [x["mean_tti"] or np.nan for x in base_off], color="#a9c8ee", lw=2, label="signals ignored")
@@ -479,6 +479,7 @@ def main():
     rates = _rates()
     md = ["# Coupled simulation results\n"]
     fig_architecture(os.path.join(FIG, "fig1_architecture.png"))
+    fig_coverage(os.path.join(FIG, "fig0_coverage.png"))
     fig_network(os.path.join(FIG, "fig2_network.png"))
     gp = os.path.join(RES, "grid_n1_sites.csv")
     fig_grid_n1(pd.read_csv(gp) if os.path.exists(gp) else grid_n1_sites(), os.path.join(FIG, "fig10_grid_n1_sites.png"))
@@ -536,6 +537,16 @@ def main():
                            {k: "{:.3f}" for k in ("all_rider_wait", "Waymo_rider_wait", "Tesla_rider_wait",
                                                   "all_unserved_pct", "human_delay_per_trip")} |
                            {"charge_queue_min_ord": "{:.1f}"}))
+    if all(os.path.exists(os.path.join(RES, f)) for f in ("placement_runs.csv", "fleets_runs.csv",
+                                                           "placement_3p5mpk_runs.csv", "fleets_3p5mpk_runs.csv")):
+        out = energy_compare(rates)
+        fig_energy(out, os.path.join(FIG, "fig11_energy_compare.png"))
+        md.append("\n## Energy use: 2.0 mi/kWh (main) vs 3.5 mi/kWh (earlier value)\n")
+        md.append("| Config | Rider wait at 3.5 | Δ vs existing 4 | Rider wait at 2.0 | Δ vs existing 4 |\n|---|---|---|---|---|")
+        a35, a20 = out["3.5"][0].set_index("config"), out["2.0"][0].set_index("config")
+        for cfg in a20.index:
+            md.append(f"| {cfg} | {a35.loc[cfg, 'annual_rider_wait']:.3f} | {a35.loc[cfg, 'd_annual_rider_wait']:+.3f} | "
+                      f"{a20.loc[cfg, 'annual_rider_wait']:.3f} | {a20.loc[cfg, 'd_annual_rider_wait']:+.3f} |")
     with open(os.path.join(RES, "summary.md"), "w") as f:
         f.write("\n".join(md) + "\n")
     print("wrote results/summary.md and figures/")
@@ -602,6 +613,126 @@ def fig_grid_n1(df, path):
                  x=0.01, ha="left", fontsize=12.5, fontweight="bold", y=1.04)
     _note(fig, "Existing 4 depots at the same size. Tie switching restores customers first; depots on borrowed "
           "capacity are curtailed first. 'intact' = power available with nothing failed.", y=-0.2)
+    fig.savefig(path, dpi=180, bbox_inches="tight")
+    plt.close(fig)
+
+
+
+# ============================================================ coverage table (same look as the 11/13 deck)
+def fig_coverage(path):
+    from matplotlib.patches import FancyBboxPatch as FB
+    rows = [("1", "Human incident, reduced capacity", "v3", "In v3"),
+            ("1b", "Rain day", "v3", "In v3"),
+            ("1c", "Recurring congestion", "v3", "In v3"),
+            ("2", "Human incident, edge closed", "v3", "In v3"),
+            ("3", "Human major incident, ≥3 edges", "no", "Added"),
+            ("4", "AV incident, reduced capacity", "v3", "In v3"),
+            ("5", "AV incident, edge closed", "v3", "In v3"),
+            ("6", "AV major incident, ≥3 edges", "no", "Added"),
+            ("7", "AV connectivity loss, fleet stalls", "no", "Added"),
+            ("7b", "AV battery depletion", "part", "Added"),
+            ("8", "AV obstructs emergency response", "no", "Added"),
+            ("9", "Depot outage, unplanned", "v3", "Grid layer"),
+            ("10", "Depot outage, major event day", "part", "Grid layer"),
+            ("11", "Depot outage, planned", "part", "Grid layer"),
+            ("12", "PSPS, ≥3 depots", "part", "Grid layer"),
+            ("13", "Wildfire, ≥1 edge closed ≥24 h", "no", "Scenario"),
+            ("14", "Wildfire, ≥3 edges", "no", "Scenario"),
+            ("15", "Flood, floodplain edge", "no", "Scenario"),
+            ("16", "Flood, 500-yr, ≥3 edges", "no", "Scenario"),
+            ("18", "Earthquake M≥6.7, ≥3 edges", "no", "Scenario")]
+    GREEN, RED, AMBER = "#3daa2e", "#d9534f", "#f0b400"
+    old = {"v3": (GREEN, "✓ In v3", "white"), "no": (RED, "× Not yet", "white"), "part": (AMBER, "◐ Partial", INK)}
+    fig, ax = plt.subplots(figsize=(10, 5.625))
+    fig.patch.set_facecolor("white")
+    ax.set_facecolor("white")
+    ax.set_xlim(0, 10)
+    ax.set_ylim(0, 5.625)
+    ax.axis("off")
+    top, rh = 5.0, 0.232
+    ax.text(1.0, 5.38, "Failure Mode Table coverage: 11/13 vs now (coupled model)", fontsize=12.5,
+            fontweight="bold", va="center", color=INK)
+    for x, lab in ((1.05, "Row"), (1.7, "Hazard"), (5.95, "11/13"), (7.45, "Now")):
+        ax.text(x, top + 0.12, lab, fontsize=9, fontweight="bold", color=INK2, va="center")
+    for i, (r, h, o, n) in enumerate(rows):
+        y = top - (i + 0.5) * rh
+        if i % 2 == 0:
+            ax.add_patch(plt.Rectangle((1.0, y - rh / 2), 7.9, rh, color="#f4f4f2", lw=0))
+        ax.text(1.05, y, r, fontsize=9, fontweight="bold", va="center", color=INK)
+        ax.text(1.7, y, h, fontsize=9, va="center", color=INK)
+        for x, (col, lab, tc) in ((5.95, old[o]), (7.45, (GREEN, "✓ " + n, "white"))):
+            ax.add_patch(FB((x, y - rh * 0.36), 1.25, rh * 0.72, boxstyle="round,pad=0,rounding_size=0.05",
+                            fc=col, ec="none"))
+            ax.text(x + 0.625, y, lab, fontsize=8.2, fontweight="bold", ha="center", va="center", color=tc)
+    fig.savefig(path, dpi=200, bbox_inches="tight", pad_inches=0.15)
+    plt.close(fig)
+
+
+
+# ============================================================ energy-use comparison (3.5 vs 2.0 mi/kWh)
+def energy_compare(rates):
+    """Annual tables at 3.5 mi/kWh (results/*_3p5mpk_runs.csv) next to the main 2.0 runs."""
+    out = {}
+    for tag, pf, ff in (("2.0", "placement_runs.csv", "fleets_runs.csv"),
+                        ("3.5", "placement_3p5mpk_runs.csv", "fleets_3p5mpk_runs.csv")):
+        pdf, fdf = pd.read_csv(os.path.join(RES, pf)), pd.read_csv(os.path.join(RES, ff))
+        _, ann = placement_tables(pdf, rates)
+        out[tag] = (ann, fleet_tables(fdf, rates),
+                    pdf[(pdf.config == "base") & (pdf.scenario == "ordinary")].charge_queue_min.mean())
+    rows = []
+    for tag, (ann, ft, q) in out.items():
+        for _, r in ann.iterrows():
+            rows.append(dict(mi_per_kwh=tag, kind="placement", config=r.config, rider_wait=r.annual_rider_wait,
+                             d_vs_ref=r.d_annual_rider_wait, se=r.se))
+        for _, r in ft.iterrows():
+            rows.append(dict(mi_per_kwh=tag, kind="fleets", config=r.config, rider_wait=r.all_rider_wait,
+                             d_vs_ref=r.d_all_rider_wait, se=r.se_all))
+        rows.append(dict(mi_per_kwh=tag, kind="queue_min_per_day_base_ordinary", config="base", rider_wait=q))
+    df = pd.DataFrame(rows)
+    df.to_csv(os.path.join(RES, "energy_compare.csv"), index=False)
+    return out
+
+
+def fig_energy(out, path):
+    fig, axes = plt.subplots(1, 2, figsize=(12, 4.6), gridspec_kw=dict(wspace=0.35, width_ratios=[1.15, 1]))
+    sites = list(C.CANDIDATE_SITES)
+    ax = axes[0]
+    x = np.arange(len(sites))
+    for k, (tag, col, lab) in enumerate((("3.5", "#a9c8ee", "3.5 mi/kWh (11/13 value)"),
+                                         ("2.0", BLUE, "2.0 mi/kWh (Waymo I-Pace estimate)"))):
+        ann = out[tag][0].set_index("config")
+        v = [ann.loc[f"+{s}", "d_annual_rider_wait"] for s in sites]
+        e = [1.96 * ann.loc[f"+{s}", "se"] for s in sites]
+        ax.bar(x + (k - 0.5) * 0.36, v, width=0.34, color=col, label=lab, yerr=e,
+               error_kw=dict(ecolor=INK2, lw=0.8, capsize=2))
+    ax.axhline(0, color=INK2, lw=1)
+    ax.set_xticks(x, [NAMES[s].replace(" ", "\n", 1) if len(NAMES[s]) > 10 else NAMES[s] for s in sites], fontsize=8.5)
+    ax.set_ylabel("change in rider wait vs existing 4 (min)")
+    ax.set_title("5th depot: annual change in rider wait", fontsize=11)
+    _hgrid(ax)
+    ax.legend(frameon=False, fontsize=8.5, loc="upper center", bbox_to_anchor=(0.5, -0.2), ncol=2)
+    ax = axes[1]
+    sizes = sorted(out["2.0"][1].tesla_n.unique())
+    x = np.arange(len(sizes))
+    for k, (tag, col) in enumerate((("3.5", "#a9c8ee"), ("2.0", BLUE))):
+        ft = out[tag][1]
+        gain = []
+        for nt in sizes:
+            sub = ft[ft.tesla_n == nt]
+            ex = sub[sub["mode"] == "exclusive"].all_rider_wait.min()
+            un = sub[sub["mode"] == "universal"].all_rider_wait.min()
+            gain.append(ex - un)
+        ax.bar(x + (k - 0.5) * 0.36, gain, width=0.34, color=col)
+        for xi, g in zip(x + (k - 0.5) * 0.36, gain):
+            ax.text(xi, g + 0.02, f"{g:.2f}", ha="center", fontsize=8.5)
+    ax.set_xticks(x, [f"Tesla {n} AVs" for n in sizes])
+    ax.set_ylabel("min saved, best universal vs best exclusive")
+    ax.set_title("Gain from universal depots", fontsize=11)
+    _hgrid(ax)
+    q35, q20 = out["3.5"][2], out["2.0"][2]
+    fig.suptitle("Using 2.0 instead of 3.5 mi/kWh", x=0.01, ha="left", fontsize=13, fontweight="bold", y=1.03)
+    _note(fig, f"Longer charging sessions (3.6 vs 6.3 mi of range per minute). Charging queue at the existing 4 depots on an "
+          f"ordinary day: {q35:.0f} -> {q20:.0f} min/day. Whiskers: 95% CI.", y=-0.16)
     fig.savefig(path, dpi=180, bbox_inches="tight")
     plt.close(fig)
 
