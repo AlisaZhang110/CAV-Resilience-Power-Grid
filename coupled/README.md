@@ -372,7 +372,7 @@ Full tables: `results/summary.md`, `results/placement_annual.csv`, `results/plac
 
 ---
 
-## Modeling limits (state these with any result)
+## Modeling limits
 
 - **One feeder for the whole corridor.** Real depots 20 miles apart sit on different feeders and substations. The
   33-bus feeder is a placeholder; the node <-> bus table encodes relative grid strength and hazard zone only.
