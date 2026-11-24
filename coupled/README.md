@@ -231,7 +231,8 @@ all the time [SRC: eletric-vehicles.com, reporting earlier estimates; not a Waym
 **the coupled model uses 2.0 mi/kWh** (`config.AV_MI_PER_KWH`). With the 1.8 kWh/min charger [DOC] that adds 3.6 mi
 of range per minute instead of 6.3, so sessions take ~35 min instead of ~20 and depots are busier.
 
-Waymo's Ojai (Zeekr) has a 93 kWh battery per its NHTSA certification filing (earlier reports said 76 kWh) [SRC]. The
+Waymo's Ojai (Zeekr) has a 93 kWh battery per EPA certification documents, as reported by Car and Driver (NHTSA
+documents give its motor; earlier reports said 76 kWh) [SRC; the filings themselves not found]. The
 model has one vehicle type. Row 8 was recalibrated at each value (`config.AMP_P_BY_MPK`). The same experiments at
 3.5 mi/kWh are kept as `results/*_3p5mpk_runs.csv` (`python -m coupled.experiments compare35`); section 5.5 compares them.
 
@@ -436,3 +437,11 @@ Outside sources used for parameters or checks (Failure Mode Table sources are on
 - LA ride-hail peak Saturday 9 p.m.: TCRP Research Report 195 (2018), nap.edu/24996.
 - Ride-hail ~12x taxi trips in SF: SFCTA, *TNCs Today* (2017).
 - No public data on a driverless Tesla fleet in LA; fleet size is a sweep.
+- AV energy use (section 2.6), all secondary reporting:
+  - I-Pace 90 kWh: KOMO News on the 2018 Waymo-Jaguar announcement,
+    https://komonews.com/news/auto-matters/waymo-jaguar-land-rover-create-first-electric-self-driving-vehicle
+  - Ojai 93 kWh (EPA documents) and motor (NHTSA documents): Car and Driver via Yahoo,
+    https://www.yahoo.com/news/articles/could-autonomous-taxi-ride-waymo-211600068.html
+  - Earlier 76 kWh reports: InsideEVs, https://insideevs.com/news/783573/waymo-zeekr-ojai-van/
+  - Waymo I-Pace 50-60 kWh/100 mi estimates:
+    https://eletric-vehicles.com/waymo/waymos-retrofitted-robotaxis-guzzle-several-times-tesla-cybercabs-energy/
