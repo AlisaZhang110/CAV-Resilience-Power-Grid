@@ -14,14 +14,20 @@ the fleet keeps serving trips through those hazards.
    TRAFFIC LAYER  (traffic/)                         GRID LAYER  (grid/)
    10-node road graph, hourly human + AV demand,     IEEE 33-bus feeder, line-level Markov outages,
    congestion, AV dispatch + charging                switching, power flow, deliverable MW per depot
-                 \______________ depot <-> bus mapping (to build) ______________/
+                 \_____ depot/signal <-> bus table, coupled every minute (coupled/) _____/
 ```
+
+**Current headline (coupled/README.md):** with Waymo's existing depots at Santa Monica, Sawtelle, LAX and Culver City,
+the best 5th depot is **Downtown LA** (-0.40 min annual rider wait, -5.5%; grid-robust and outside the PSPS zone),
+with Hollywood close behind on ordinary days. If Tesla adds a fleet, **universal (shared) depots beat exclusive ones** at every
+fleet size tested.
 
 ## Repository layout
 
 | Path | What it is | Status |
 |---|---|---|
 | `data/Failure_Mode_Table.xlsx` | Hazard rates, durations, sources, priority and feasibility rankings | Complete |
+| `coupled/` | **Coupled simulation.** Grid layer sets each depot's deliverable MW (dark / partial / full) and each node's traffic signals every minute; every Failure Mode Table row; several fleets with universal or exclusive depots; placement and multi-fleet experiments, figures | Runs; see its README |
 | `traffic/v3_time_of_day/` | **Current traffic layer.** Hourly human/AV demand (NHTS 2017), BPR congestion, AV fleet dispatch and charging, table rows 1, 1b, 1c, 2, 4, 5, 9, 10 (+ forced 11, 12) | Runs; see its README |
 | `traffic/v3_time_of_day/analysis/` | Scripts, saved results and figures behind the Nov 2026 advisor slides | Reproducible; see its README |
 | `traffic/v2_failure_mode_2/` | Earlier version: 100 looping cars, row 2 only. Kept for comparison | Superseded |
@@ -40,37 +46,41 @@ python av_traffic_sim_tod.py --days 100            # 100-day averages
 
 cd ../../grid
 python run_examples.py                             # calibration, N-1, ordinary week, PSPS, earthquake, storm
+
+cd ..                                              # repo root: coupled simulation
+PYTHONPATH=. python -m coupled.experiments all     # ~3,000 simulated days
+PYTHONPATH=. python -m coupled.report              # results/ and figures/ under coupled/
 ```
 
 ## Failure Mode Table coverage
 
+Every row is now modeled in `coupled/` (details: `coupled/README.md`, section 2).
+
 | Row | Hazard | Where |
 |---|---|---|
-| 1, 4 | Human / AV incident, reduced capacity | traffic v3 (stochastic) |
-| 1b | Rain day | traffic v3 (`--rain`) |
-| 1c | Recurring congestion | traffic v3 (BPR + hourly demand) |
-| 2, 5 | Human / AV incident, edge closed | traffic v3 (stochastic, freeway edges) |
-| 3, 6 | Major incident, ≥ 3 edges | not yet |
-| 7, 7b, 8 | AV connectivity stall, battery depletion, emergency-response obstruction | 7b appears as an output (stranded AVs); 7 and 8 not yet |
-| 9, 10 | Depot power outage, unplanned / major event day | traffic v3 (per-depot), grid (line-level, correlated) |
-| 11, 12 | Planned outage, PSPS | traffic v3 (`--outage`), grid (`psps()` scenario) |
-| 13–16 | Wildfire / flood edge closures | not yet (needs wildfire-zone and floodplain edge tags + multi-day horizon) |
-| 18 | Earthquake | grid (`substation_loss()`); road side not yet |
+| 1, 4 | Human / AV incident, reduced capacity | traffic v3, sampled every minute |
+| 1b | Rain day | scenario (34.1 days/yr) |
+| 1c | Recurring congestion | BPR + hourly demand |
+| 2, 5 | Human / AV incident, edge closed | traffic v3, sampled every minute |
+| 3, 6 | Major incident, >= 3 edges | coupled: 1 edge closed + 2 adjacent diversion edges |
+| 7 | AV connectivity stall | coupled: scheduled, and triggered when >= 3 nodes have dark signals |
+| 7b | Battery depletion | coupled: a stranded AV blocks a lane until towed |
+| 8 | AV obstructs incident clearance | coupled: +5/15/30 min, calibrated to 0.17 per AV-year |
+| 9, 10, 11 | Unplanned, major-event-day, planned outages | grid layer (line level, switching, curtailment), coupled to depots and signals |
+| 12 | PSPS | grid WUI zone (Santa Monica, Hollywood, Pasadena); q = 0.10 is a placeholder |
+| 13, 14 | Wildfire, 1 or >= 3 edges | WUI edges closed; row 14 also de-energizes the WUI zone |
+| 15, 16 | Flood, 100-yr / 500-yr | Ballona edges closed + floodplain buses dark |
+| 18 | Earthquake | freeway edges closed, inspection slowdowns, substation loss |
 
 ## Next steps: full depot siting
 
-Planned study (not built yet). It replaces the notes' fixed charger set {1, 2, 4, 5} with an open siting question, and
-keeps the notes' set as the benchmark. A first check (`traffic/v3_time_of_day/analysis/siting_check.py`: all 210
-four-depot layouts, normal weekdays, uniform demand) already ranks the notes' set #200 of 210 on AV wait.
-
-1. **Gravity demand:** q_ij = K·P_i·A_j / d_ij, with P = resident workers and A = jobs per node (LEHD LODES).
-2. **Grid coupling:** map each node to a feeder bus (tied to the grid layer's WUI and floodplain zones), so the power
-   each depot can actually draw, hour by hour, sets how many chargers it can run.
-3. **Multi-day hazard scenarios** from the Failure Mode Table (major storm, PSPS, wildfire, flood, earthquake), each
-   with its annual rate, including correlated multi-depot outages and the road-side closures (rows 3/6, 13–16, 18).
-4. **Enumerate every layout of 2–6 depots** (837 layouts) and rank them on normal-day service and on rate-weighted
-   expected service lost under the hazard scenarios. Report the trade-off (Pareto) front for each depot count, and
-   where the notes' layout falls on it.
+1. Replace the placeholder node <-> bus table with real feeder/substation assignments (SCE circuit maps), and look
+   up PSPS q for each node on SCE's PSPS circuit map.
+2. Two-way coupling (fleet demand changes feeder voltages) once depots are sized above ~0.4 MW, where fig 10 shows
+   curtailment binding even with nothing failed.
+3. Multi-day runs for wildfire / earthquake closures, and weekend days once a weekend ride-hail total is sourced.
+4. Several depots per entrant (the exclusive case currently allows Tesla one depot).
+5. Gravity-model origins/destinations instead of uniform.
 
 ## Data sources
 
@@ -78,3 +88,4 @@ four-depot layouts, normal weekdays, uniform demand) already ranks the notes' se
 - Hourly demand profiles: 2017 National Household Travel Survey (FHWA), public trip file. See
   `traffic/v3_time_of_day/build_profiles.py`.
 - Grid: Baran & Wu (1989) 33-bus test feeder via pandapower; SCE 2025 Annual Electric Reliability Report.
+- Coupled-model outside sources (dark-signal capacity, Dec 2025 SF outage, ride-hail checks): `coupled/README.md`.
