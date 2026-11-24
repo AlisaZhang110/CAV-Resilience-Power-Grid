@@ -1,0 +1,28 @@
+%%{init: {"theme":"base","themeVariables":{"fontSize":"20px","primaryColor":"#ffffff","primaryBorderColor":"#52514e","lineColor":"#52514e","primaryTextColor":"#0b0b0b"}}}%%
+flowchart LR
+  FMT["<b>Failure Mode Table</b><br/>annual rate, duration,<br/>footprint per hazard row"]
+  NHTS["<b>NHTS 2017</b><br/>hourly trip shares<br/>human + ride-hail"]
+  subgraph TL["Traffic layer (traffic/v3) : built"]
+    D["Hourly demand<br/>human trips + AV requests"]
+    R["Road graph<br/>10 nodes, 17 edges<br/>BPR congestion"]
+    F["AV fleet (15)<br/>dispatch, range, charging"]
+  end
+  subgraph GL["Grid layer (grid/) : built"]
+    G["33-bus feeder<br/>line outages, switching,<br/>power flow"]
+  end
+  M["<b>Outputs</b><br/>human delay, AV wait,<br/>unserved trips, stranding"]
+  NHTS --> D
+  FMT -- "road incidents<br/>rows 1-5" --> R
+  FMT -- "depot outages<br/>rows 9-12" --> F
+  FMT -. "PSPS, quake, storm" .-> G
+  D --> R
+  D --> F
+  F <--> R
+  G -. "deliverable MW per depot<br/>(coupling: next step)" .-> F
+  R --> M
+  F --> M
+  classDef built fill:#eaf2fc,stroke:#2a78d6,stroke-width:2px;
+  classDef todo fill:#fff4ec,stroke:#eb6834,stroke-width:2px,stroke-dasharray:6 4;
+  classDef io fill:#f6f6f3,stroke:#898781;
+  class D,R,F,G built
+  class FMT,NHTS,M io

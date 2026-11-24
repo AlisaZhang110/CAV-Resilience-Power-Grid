@@ -1,0 +1,8 @@
+%%{init: {"theme":"base","themeVariables":{"fontSize":"20px","primaryColor":"#ffffff","primaryBorderColor":"#52514e","lineColor":"#52514e","primaryTextColor":"#0b0b0b"}}}%%
+flowchart LR
+  S0(["Minute t<br/>(1,440 per day)"]) --> S1
+  S1["<b>1. Hazards</b><br/>end expired events;<br/>sample new ones:<br/>p = rate x hour-of-day<br/>exposure x rain factor"] --> S2
+  S2["<b>2. Move vehicles</b><br/>advance on edge;<br/>stuck if edge closed;<br/>at a node: re-plan<br/>fastest open route"] --> S3
+  S3["<b>3. New demand</b><br/>spawn this minute's<br/>human trips;<br/>queue AV requests"] --> S4
+  S4["<b>4. Dispatch AVs</b><br/>nearest idle AV with<br/>range for pickup + trip<br/>+ reach a working depot"] --> S5
+  S5["<b>5. Charge</b><br/>AV under 50 mi:<br/>go to nearest working<br/>depot, charge to full (6.3 mi/min)"] --> S0

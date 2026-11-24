@@ -181,14 +181,24 @@ hour:
 
 - Events per day match the table: row 1 159 (expected 6.62 × 24 = 159), row 2 0.46 (expected 0.50), row 4 3.7
   (expected 3.75), row 9 0.02 (expected 0.025).
-- **Rows one at a time (50 weekdays each):** row 1 adds ~1,040 min/day of delay, row 2 ~970, row 4 ~25.
-  - Frequent minor incidents cost about as much total delay as rare full blockages.
-  - Row 2's average rests on ~0.5 events/day, so it is the noisier of the two.
+- **Rows one at a time (100 weekdays each, ±95% CI):** row 1 adds 1,059 ± 66 min/day of delay, row 2 744 ± 312,
+  row 4 24 ± 15.
+  - Frequent minor incidents cost at least as much total delay as rare full blockages.
+  - Row 2's average rests on ~0.5 events/day (about a third of days have one), so it is the noisier of the two.
+- **Depot outages, notes' 4-depot layout:** with 1, 2 or 3 of 4 depots dark for up to 12 h, ≤ 0.1% of AV requests are
+  lost (also with 1 port per depot, and at 4× AV demand). With all 4 dark: 1% lost at 4 h, 16% at 8 h, 34% at 12 h.
+  A 180-mi battery covers most of a day, so a one-day horizon understates depot risk.
 
 **Depots.** With a 180-mi range and ~10-mi trips, each AV charges about once a day (≈20 sessions/day for 15 AVs). A
 single depot dark for 2 h barely matters, even with only 4 depots. Making all four of the notes' depots
 (`--chargers 1,2,4,5`) dark for 10 h from 10:00 drops service from 173 to 116 served trips (54 unserved). The power
 rows matter when outages are **long or correlated** (rows 10, 12), not routine ones.
+
+**Siting check (all 210 four-depot layouts, 2 normal weekdays each, uniform demand).** Mean AV wait ranges from
+6.0 min (Culver City, Downtown, Playa del Rey, Mid-City) to 10.0 min. The notes' set {1, 2, 4, 5} ranks #200 (8.5 min,
+28% empty miles). The five best layouts all include both Culver City and Downtown LA.
+
+The scripts, saved results and figures for everything in this section are in `analysis/`.
 
 ---
 

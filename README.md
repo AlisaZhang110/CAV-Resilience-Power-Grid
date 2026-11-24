@@ -29,6 +29,7 @@ fleet size tested.
 | `data/Failure_Mode_Table.xlsx` | Hazard rates, durations, sources, priority and feasibility rankings | Complete |
 | `coupled/` | **Coupled simulation.** Grid layer sets each depot's deliverable MW (dark / partial / full) and each node's traffic signals every minute; every Failure Mode Table row; several fleets with universal or exclusive depots; placement and multi-fleet experiments, figures | Runs; see its README |
 | `traffic/v3_time_of_day/` | **Current traffic layer.** Hourly human/AV demand (NHTS 2017), BPR congestion, AV fleet dispatch and charging, table rows 1, 1b, 1c, 2, 4, 5, 9, 10 (+ forced 11, 12) | Runs; see its README |
+| `traffic/v3_time_of_day/analysis/` | Scripts, saved results and figures behind the Nov 2026 advisor slides | Reproducible; see its README |
 | `traffic/v2_failure_mode_2/` | Earlier version: 100 looping cars, row 2 only. Kept for comparison | Superseded |
 | `grid/` | **Current grid layer** (`grid_layer` package + `run_examples.py`): routine outages calibrated to SCE SAIFI/CAIDI, PSPS / earthquake / storm scenarios, restoration switching, curtailment | Runs; see its README |
 | `grid/legacy/` | First grid scripts (`markov_outages.py`, `feeder_study.py`, `outage_sim.py`) and their README | Superseded by `grid/grid_layer` |
@@ -71,7 +72,7 @@ Every row is now modeled in `coupled/` (details: `coupled/README.md`, section 2)
 | 15, 16 | Flood, 100-yr / 500-yr | Ballona edges closed + floodplain buses dark |
 | 18 | Earthquake | freeway edges closed, inspection slowdowns, substation loss |
 
-## Next steps
+## Next steps: full depot siting
 
 1. Replace the placeholder node <-> bus table with real feeder/substation assignments (SCE circuit maps), and look
    up PSPS q for each node on SCE's PSPS circuit map.
